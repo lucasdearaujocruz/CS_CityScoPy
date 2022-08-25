@@ -405,6 +405,7 @@ class Cityscopy:
             if (scan_results != old_scan_results) and from_last_sent > SEND_INTERVAL:
                 try:
                     if self.table_settings['cityio'] is True:
+                        #self.update_grid(scan_results)
                         cityio_data_dump = json.dumps({"cityscopy":scan_results})
                         self.send_json_to_cityIO(cityio_data_dump)
                     else:
@@ -424,7 +425,9 @@ class Cityscopy:
         '''
         sends the grid to cityIO 
         '''
-        print(cityIO_json)
+        # debug
+        # print(cityIO_json)
+
         # defining the api-endpoint
         API_ENDPOINT = "https://cityio.media.mit.edu/api/table/" + \
             self.table_settings['cityscope_project_name'] + "/" 
@@ -753,3 +756,77 @@ class Cityscopy:
 
         WEBCAM.release()
         cv2.destroyAllWindows()
+
+    ##################################################
+
+    def get_grid_from_cityIO(self):
+        """ Gets grid data from CityIO
+
+        Returns:
+            dict: JSON-like with table data
+        """
+        # defining the api-endpoint
+        API_ENDPOINT = "https://cityio.media.mit.edu/api/table/" + \
+            self.table_settings['cityscope_project_name'] + "/" 
+        # sending get request and saving response as response object
+        req = requests.get(url=API_ENDPOINT)
+        if req.status_code != 200:
+            print("cityIO might be down. so sad.")
+
+        print("got grid from", API_ENDPOINT,  req)
+        return req.json()
+
+    ##################################################
+
+    def GEOGRID_2_GEOGRIDDATA(self, geogrid):
+        """ Convert GEOGRID to GEOGRIDDATA format, the major change is the color format
+
+        Args:
+            geogrid (dict): geogrid formatted data
+
+        Returns:
+            dict: data formatted as GEOGRIDDATA
+        """
+        hex_color = geogrid['color'].lstrip('#')
+        rgb_color = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+        color = {0: rgb_color[0],
+                 1: rgb_color[1],
+                 2: rgb_color[2]}
+
+        geogriddata = {
+            'color': color,
+            'height': geogrid['height'],
+            'id': geogrid['tableData']['id'],
+            'interactive': geogrid['interactive'],
+            'name': geogrid['name'],
+        }
+        return geogriddata
+
+    ##################################################
+
+    def update_grid(self, cityscopy: list=[]):
+        """ Update GEOGRIDDATA based on cityscopy data
+        """
+
+        #TODO: 
+        # Error handling, errors in (or lack of) mapping and in scanning;
+        # update in interval and if changed;
+
+        data = self.get_grid_from_cityIO()
+
+        # Mapping from cityscopy id to greogrid naming
+        mapping = data['GEOGRID']['properties']['geogrid_to_tui_mapping']
+
+        # GEOGRID types
+        types = data['GEOGRID']['properties']['types']
+
+        # replace name of the type for the type GEOGRID properties in GEOGRIDDATA format
+        mapping = { key:self.GEOGRID_2_GEOGRIDDATA(types.get(value)) for key,value in mapping.items()}
+
+        # Update geogriddata, ignoring rotation (yet)
+        if len(cityscopy) == 0:
+            cityscopy = data['cityscopy']
+        updated_geogriddata = [mapping[str(item)] if item != -1 else 1 for item, rotation in cityscopy]
+
+        geogriddata = json.dumps({"GEOGRIDDATA":updated_geogriddata})
+        self.send_json_to_cityIO(geogriddata)
