@@ -66,5 +66,5 @@ of uniquely tagged LEGO array
     # update grid and send to cityIO
     while(1):
         cityscopy.update_grid()
-        sleep(0.5)
+        sleep(0.05)
 

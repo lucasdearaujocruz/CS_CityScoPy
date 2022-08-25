@@ -405,9 +405,11 @@ class Cityscopy:
             if (scan_results != old_scan_results) and from_last_sent > SEND_INTERVAL:
                 try:
                     if self.table_settings['cityio'] is True:
-                        #self.update_grid(scan_results)
-                        cityio_data_dump = json.dumps({"cityscopy":scan_results})
-                        self.send_json_to_cityIO(cityio_data_dump)
+                        if self.table_settings['update_grid']:
+                            self.update_grid(scan_results)
+                        else:
+                            cityio_data_dump = json.dumps({"cityscopy":scan_results})
+                            self.send_json_to_cityIO(cityio_data_dump)
                     else:
                         self.send_json_to_UDP(scan_results)
                 except Exception as ERR:
