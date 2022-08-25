@@ -426,7 +426,7 @@ class Cityscopy:
         sends the grid to cityIO 
         '''
         # debug
-        # print(cityIO_json)
+        #print(cityIO_json)
 
         # defining the api-endpoint
         API_ENDPOINT = "https://cityio.media.mit.edu/api/table/" + \
@@ -826,7 +826,10 @@ class Cityscopy:
         # Update geogriddata, ignoring rotation (yet)
         if len(cityscopy) == 0:
             cityscopy = data['cityscopy']
-        updated_geogriddata = [mapping[str(item)] if item != -1 else 1 for item, rotation in cityscopy]
 
-        geogriddata = json.dumps({"GEOGRIDDATA":updated_geogriddata})
-        self.send_json_to_cityIO(geogriddata)
+        try:
+            updated_geogriddata = [mapping[str(item)] for item, rotation in cityscopy]
+            geogriddata = json.dumps({"GEOGRIDDATA":updated_geogriddata})
+            self.send_json_to_cityIO(geogriddata)
+        except KeyError as e:
+            print("Incorrect scanning or mapping")

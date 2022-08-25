@@ -64,5 +64,7 @@ of uniquely tagged LEGO array
     cityscopy = Cityscopy(CITYSCOPY_SETTINGS_PATH)
 
     # update grid and send to cityIO
-    cityscopy.update_grid()
+    while(1):
+        cityscopy.update_grid()
+        sleep(0.5)
 
